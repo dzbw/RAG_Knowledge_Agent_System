@@ -11,6 +11,7 @@ import {
   SwitchButton,
   Postcard,
   ArrowDown,
+  Money,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import { fileUrl } from '../utils/files'
@@ -94,6 +95,13 @@ function onHeaderCommand(cmd) {
           <el-icon><ChatLineRound /></el-icon>
           <span>问答测试</span>
         </el-menu-item>
+        <el-sub-menu index="finance">
+          <template #title>
+            <el-icon><Money /></el-icon>
+            <span>财务管理</span>
+          </template>
+          <el-menu-item index="/admin/finance/invoice-in">进项发票入账</el-menu-item>
+        </el-sub-menu>
         <el-menu-item index="/admin/profile">
           <el-icon><Postcard /></el-icon>
           <span>个人中心</span>

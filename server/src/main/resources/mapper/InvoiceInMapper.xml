@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.java1234.mapper.InvoiceInMapper">
+
+    <sql id="whereSql">
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (invoice_no LIKE CONCAT('%', #{keyword}, '%')
+                     OR supplier LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="departmentId != null">
+                AND department_id = #{departmentId}
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+    </sql>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(*) FROM t_invoice_in
+        <include refid="whereSql"/>
+    </select>
+
+    <select id="selectPage" resultType="com.java1234.entity.InvoiceIn">
+        SELECT i.*, d.name AS department_name
+        FROM t_invoice_in i
+        LEFT JOIN t_department d ON d.id = i.department_id
+        <include refid="whereSql"/>
+        ORDER BY i.invoice_date DESC, i.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectById" resultType="com.java1234.entity.InvoiceIn">
+        SELECT i.*, d.name AS department_name
+        FROM t_invoice_in i
+        LEFT JOIN t_department d ON d.id = i.department_id
+        WHERE i.id = #{id}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_invoice_in
+            (invoice_no, invoice_type, supplier, department_id, amount, tax_amount, invoice_date, status, remark)
+        VALUES
+            (#{invoiceNo}, #{invoiceType}, #{supplier}, #{departmentId}, #{amount}, #{taxAmount},
+             #{invoiceDate}, #{status}, #{remark})
+    </insert>
+
+    <update id="update">
+        UPDATE t_invoice_in
+        <set>
+            <if test="invoiceNo != null">invoice_no = #{invoiceNo},</if>
+            <if test="invoiceType != null">invoice_type = #{invoiceType},</if>
+            <if test="supplier != null">supplier = #{supplier},</if>
+            <if test="departmentId != null">department_id = #{departmentId},</if>
+            <if test="amount != null">amount = #{amount},</if>
+            <if test="taxAmount != null">tax_amount = #{taxAmount},</if>
+            <if test="invoiceDate != null">invoice_date = #{invoiceDate},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM t_invoice_in WHERE id = #{id}
+    </delete>
+
+    <!-- 部门维度汇总：各部门张数、不含税金额合计、税额合计 -->
+    <select id="statByDepartment" resultType="java.util.HashMap">
+        SELECT d.id AS departmentId,
+               d.name AS deptName,
+               COUNT(i.id) AS count,
+               IFNULL(SUM(i.amount), 0) AS totalAmount,
+               IFNULL(SUM(i.tax_amount), 0) AS totalTax
+        FROM t_department d
+        LEFT JOIN t_invoice_in i ON i.department_id = d.id
+        GROUP BY d.id, d.name
+        ORDER BY d.id ASC
+    </select>
+
+    <select id="countByDepartmentId" resultType="long">
+        SELECT COUNT(*) FROM t_invoice_in WHERE department_id = #{departmentId}
+    </select>
+</mapper>

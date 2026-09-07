@@ -20,6 +20,7 @@ const routes = [
       { path: 'categories', name: 'AdminCategories', component: () => import('../views/admin/CategoryManage.vue') },
       { path: 'documents', name: 'AdminDocuments', component: () => import('../views/admin/DocumentManage.vue') },
       { path: 'chat-test', name: 'AdminChatTest', component: () => import('../views/admin/ChatTest.vue') },
+      { path: 'finance/invoice-in', name: 'AdminInvoiceIn', component: () => import('../views/admin/InvoiceInManage.vue'), meta: { title: '进项发票入账' } },
       {
         path: 'profile',
         name: 'AdminProfile',
