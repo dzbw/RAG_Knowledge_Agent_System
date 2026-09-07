@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.java1234.mapper.KbDocumentMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_kb_document (category_id, title, file_name, file_path, file_type, file_size, status, vector_count, upload_user_id)
+        VALUES (#{categoryId}, #{title}, #{fileName}, #{filePath}, #{fileType}, #{fileSize}, #{status}, #{vectorCount}, #{uploadUserId})
+    </insert>
+
+    <update id="update">
+        UPDATE t_kb_document
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="vectorCount != null">vector_count = #{vectorCount},</if>
+            <if test="categoryId != null">category_id = #{categoryId},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectById" resultType="com.java1234.entity.KbDocument">
+        SELECT * FROM t_kb_document WHERE id = #{id}
+    </select>
+
+    <select id="selectIdCategoryByIds" resultType="com.java1234.entity.KbDocument">
+        SELECT id, category_id AS categoryId FROM t_kb_document
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="selectIdsByCategoryIds" resultType="long">
+        SELECT id FROM t_kb_document
+        WHERE category_id IN
+        <foreach collection="categoryIds" item="cid" open="(" separator="," close=")">
+            #{cid}
+        </foreach>
+    </select>
+
+    <delete id="deleteById">
+        DELETE FROM t_kb_document WHERE id = #{id}
+    </delete>
+
+    <select id="countByKeyword" resultType="long">
+        SELECT COUNT(*) FROM t_kb_document d
+        <where>
+            <if test="categoryId != null">AND d.category_id = #{categoryId}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (d.title LIKE CONCAT('%', #{keyword}, '%') OR d.file_name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <select id="selectPage" resultType="com.java1234.entity.KbDocument">
+        SELECT * FROM t_kb_document d
+        <where>
+            <if test="categoryId != null">AND d.category_id = #{categoryId}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (d.title LIKE CONCAT('%', #{keyword}, '%') OR d.file_name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY d.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="sumVectorCount" resultType="long">
+        SELECT IFNULL(SUM(vector_count), 0) FROM t_kb_document
+    </select>
+
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*) FROM t_kb_document
+    </select>
+
+    <select id="countGroupByCategory" resultType="map">
+        SELECT c.name AS name, COUNT(d.id) AS value
+        FROM t_kb_category c
+        LEFT JOIN t_kb_document d ON d.category_id = c.id
+        GROUP BY c.id, c.name
+        ORDER BY c.sort_order
+    </select>
+
+    <select id="countByCategoryId" resultType="int">
+        SELECT COUNT(*) FROM t_kb_document WHERE category_id = #{categoryId}
+    </select>
+</mapper>

@@ -1,0 +1,235 @@
+================================================================
+        Redis 可视化（RedisInsight）完整操作指南
+        —— 从 0 开始：拉镜像、启动、配置、查看数据
+================================================================
+适用环境：Windows + Docker Desktop + 你的 redis-stack-rag 容器
+         （Redis 端口 6380，即项目后端用的那个）
+
+----------------------------------------------------------------
+【背景说明】
+----------------------------------------------------------------
+Redis 本身没有任何网页界面，要"看到"里面的数据，需要借助
+可视化工具。最推荐 Redis 官方的 RedisInsight：
+  - 免费、界面漂亮、支持搜索/查询/控制台
+  - 你的 Redis 是 Redis Stack（带 RediSearch 模块），
+    RedisInsight 还能直接看向量索引 java1234_rag_idx，
+    这是命令行看不到的能力。
+
+做法：再开一个 Docker 容器跑 RedisInsight，
+      浏览器打开 http://localhost:5544 即可。
+
+----------------------------------------------------------------
+【第一步：启动 Docker】
+----------------------------------------------------------------
+1. 双击桌面/开始菜单里的 "Docker Desktop"，等右下角鲸鱼
+   图标变成"稳定"状态（不再转圈）。
+2. 打开命令行（cmd 或 PowerShell）验证：
+
+   docker version
+
+   能正常输出版本号 = Docker 已启动。
+   报错 "cannot connect to the docker daemon" = Docker 没起来，
+   先去把 Docker Desktop 启动好。
+
+----------------------------------------------------------------
+【第二步：确认你的 Redis 容器在运行】
+----------------------------------------------------------------
+命令行执行：
+
+   docker ps
+
+应该能看到一行：
+   redis-stack-rag    redis/redis-stack-server:latest    Up ...    0.0.0.0:6380->6379/tcp
+
+如果没有这一行（Redis 没启动），先启动 Redis：
+
+   docker start redis-stack-rag        （之前建过容器时）
+   或
+   docker run -d --name redis-stack-rag -p 6380:6379 --restart unless-stopped redis/redis-stack-server:latest
+
+----------------------------------------------------------------
+【第三步：拉取 RedisInsight 镜像】
+----------------------------------------------------------------
+命令行执行：
+
+   docker pull redis/redisinsight:latest
+
+说明：
+  - 镜像约 370MB，视网速需要几分钟；
+  - 中途断网/超时没关系，重新执行同一命令会自动续传；
+  - 拉完可以用 docker images | findstr redisinsight 确认，
+    能看到 "redis/redisinsight  latest  ..." 一行即成功。
+
+----------------------------------------------------------------
+【第四步：启动可视化容器（关键：端口映射别写错）】
+----------------------------------------------------------------
+命令行执行：
+
+   docker run -d --name redisinsight -p 5544:5540 --restart unless-stopped redis/redisinsight:latest
+
+参数解释：
+  -d                     后台运行
+  --name redisinsight    容器取名（方便以后管理）
+  -p 5544:5540           你浏览器访问 5544 → 转发到容器内 5540
+  --restart unless-stopped  Docker 重启后自动拉起这个容器
+
+★ 重要坑（我踩过的）：
+  新版 RedisInsight 镜像（3.x）在容器内部监听的是 5540 端口，
+  不是老教程里写的 5544。所以必须映射 -p 5544:5540。
+  如果映射错了（比如 5544:5544），容器显示 Up 但浏览器打不开，
+  就是这个问题。
+
+如果提示 "docker: Error response ... name already in use"，
+说明之前建过同名容器，先删了再建：
+
+   docker rm -f redisinsight
+   （然后重新执行上面的 docker run 命令）
+
+----------------------------------------------------------------
+【第五步：确认容器已就绪】
+----------------------------------------------------------------
+1. 查看容器状态：
+
+   docker ps | findstr redisinsight
+
+   STATUS 显示 "Up xx seconds" 即可。
+
+2. 首次启动会花 10~30 秒做初始化（生成安全密钥），
+   可以看一下日志：
+
+   docker logs redisinsight
+
+   出现 "Running docker-entry.sh" 以及后续启动日志属正常。
+
+3. 等 30 秒左右后，浏览器打开：
+
+       http://localhost:5544
+
+   能看到 "Redis Insight" 登录/首页 = 成功。
+   （如果一直打不开，先 docker logs redisinsight 看报错；
+    90% 是第四步的端口映射写成了 5544:5544，重建容器即可。）
+
+----------------------------------------------------------------
+【第六步：添加连接（最关键的一步）】
+----------------------------------------------------------------
+进入 RedisInsight 首页，点 【Add Redis Server】（添加 Redis 服务器），
+按下面填写：
+
+   Host（主机）：  host.docker.internal   ★ 绝对不能填 localhost！
+   Port（端口）：  6380
+   Database：      0
+   Password：      （留空，你的 Redis 没设密码）
+   TLS / Use TLS： 关闭
+
+   其余选项保持默认，点 【Connect】。
+
+★ 为什么必须填 host.docker.internal？
+  RedisInsight 自己也是一个容器。容器里的 "localhost"
+  指的是容器自己，而不是你的 Windows 电脑，所以连不上。
+  Docker 提供了特殊域名 host.docker.internal，
+  专门代表"宿主机（你的电脑）"，Redis 跑在宿主机的 6380 端口，
+  所以填 host.docker.internal:6380 就对了。
+
+连接成功后左侧会出现你的 Redis，点进去就能看到数据。
+
+----------------------------------------------------------------
+【第七步：去哪里看你的项目数据】
+----------------------------------------------------------------
+1. 查看 Key（最常用）
+   进入连接 → 左侧 Keys 面板：
+   - 搜索框输入：java1234_rag:*
+     （你的向量数据 key 都带这个前缀）
+   - 点某个 key 可以看内容、TTL、修改、删除
+   - 点 key 右侧 "Query" 按钮可用 Redis 命令直接操作
+
+2. 查询控制台（相当于 redis-cli 图形版）
+   进入连接后顶部有 "Query Console" 标签：
+   - 输入：KEYS *            看所有 key
+   - 输入：DBSIZE            看 key 总数
+   - 输入：FT.SEARCH java1234_rag_idx "test" LIMIT 0 5
+     可以模拟后端做向量/全文检索
+
+3. 向量索引视图（Redis Stack 专属，别人没有）
+   左侧菜单找 "Indexes"（索引）：
+   - 能看到 java1234_rag_idx 这个 RediSearch 索引
+   - 点进去可以按 schema 查看字段、浏览索引里的文档
+   - 这对应你后端 RAG 问答时实际检索的向量库
+
+----------------------------------------------------------------
+【第八步：日常管理命令】
+----------------------------------------------------------------
+  停止可视化（不影响 Redis 数据）：
+      docker stop redisinsight
+  启动可视化：
+      docker start redisinsight
+  看日志：
+      docker logs redisinsight
+  彻底删除可视化容器：
+      docker rm -f redisinsight
+  删除镜像（释放 370MB 磁盘）：
+      docker rmi redis/redisinsight:latest
+
+----------------------------------------------------------------
+【常见问题排查】
+----------------------------------------------------------------
+1) 浏览器打不开 http://localhost:5544
+   → 99% 是端口映射写成 5544:5544。
+     检查：docker ps 里 redisinsight 的 PORTS 列应是 0.0.0.0:5544->5540/tcp
+     处理：docker rm -f redisinsight 后用 5544:5540 重建。
+
+2) 点 Connect 报错 "Could not connect"
+   → Host 是否填了 host.docker.internal？填 localhost 必挂。
+   → 你的 Redis 容器是否在跑？docker ps 看 redis-stack-rag 是否 Up。
+   → 端口是否 6380（不是 6379）。
+
+3) 连上了但看不到数据
+   → 确认 Database 选的是 0（你后端用的库）。
+   → key 前缀是 java1234_rag:，搜索框加 * 通配。
+
+4) 5544 端口被占用
+   → 换一个：docker run -d --name redisinsight -p 5555:5540 --restart unless-stopped redis/redisinsight:latest
+     然后浏览器访问 http://localhost:5555
+
+5) docker pull 一直很慢/失败
+   → 重新执行 pull 命令可续传；
+   → 或给 Docker 配置国内镜像加速器
+     （Docker Desktop → Settings → Docker Engine，加 registry-mirrors）。
+
+----------------------------------------------------------------
+【你问的问题：Docker 不启动，可视化容器会启动吗？】
+----------------------------------------------------------------
+答：不会。
+
+原因：容器不是独立程序，它是 Docker 引擎（Docker Desktop
+背后的服务）里运行的一个进程。Docker 引擎不运行，
+所有容器一律不存在（既没运行也没暂停），--restart
+自动重启策略也只在 Docker 引擎运行后才生效。
+
+具体场景对照：
+  场景 A：Docker Desktop 没启动
+      → docker ps 直接报错 "cannot connect to the docker daemon"
+      → Redis 容器、RedisInsight 容器都不可用
+      → 你的后端 Spring Boot 也会启动失败
+        （它连 Redis 6380 会报 Connection refused）
+
+  场景 B：Docker Desktop 启动后
+      → 因为两个容器都加了 --restart unless-stopped，
+        redis-stack-rag 和 redisinsight 会自动恢复运行，
+        不用手动敲 docker start，浏览器 5544 直接可用。
+
+  场景 C：电脑重启
+      → 如果 Docker Desktop 勾选了开机自启
+        （Settings → General → "Start Docker Desktop
+         when you sign in to your computer"），
+        开机后两个容器自动回来；
+      → 没勾选的话，你需要先手动打开 Docker Desktop，
+        等鲸鱼图标稳定后，两个容器才会自动拉起。
+
+一句话总结：
+  Docker Desktop 是地基，Redis 和可视化都建在上面。
+  地基不启动，楼（容器）不可能自己立起来；
+  地基一起，加了 --restart 的楼会自动恢复。
+
+================================================================
+                                完
+================================================================

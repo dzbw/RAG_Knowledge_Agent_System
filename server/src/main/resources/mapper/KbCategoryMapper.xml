@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.java1234.mapper.KbCategoryMapper">
+
+    <select id="listAllOrderBySort" resultType="com.java1234.entity.KbCategory">
+        SELECT * FROM t_kb_category ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <select id="selectById" resultType="com.java1234.entity.KbCategory">
+        SELECT * FROM t_kb_category WHERE id = #{id}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_kb_category (name, description, icon, sort_order)
+        VALUES (#{name}, #{description}, #{icon}, #{sortOrder})
+    </insert>
+
+    <update id="update">
+        UPDATE t_kb_category
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="icon != null">icon = #{icon},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM t_kb_category WHERE id = #{id}
+    </delete>
+</mapper>

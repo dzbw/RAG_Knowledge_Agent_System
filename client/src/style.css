@@ -1,0 +1,38 @@
+:root {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --app-primary: #6366f1;
+  --app-primary-dark: #4f46e5;
+  --app-bg: linear-gradient(135deg, #0f172a 0%, #1e1b4b 45%, #312e81 100%);
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.page-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: linear-gradient(90deg, #6366f1, #a855f7);
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.el-main.admin-main {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 32%);
+  min-height: calc(100vh - 24px);
+}

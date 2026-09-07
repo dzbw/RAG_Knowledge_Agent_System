@@ -1,0 +1,18 @@
+# 根目录兜底忽略（前后端子目录各有自己的 .gitignore，这里再保险一层）
+node_modules/
+dist/
+target/
+build/
+
+# IDE / 编辑器
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+*.suo
+.DS_Store
+
+# 日志
+logs/
+*.log
